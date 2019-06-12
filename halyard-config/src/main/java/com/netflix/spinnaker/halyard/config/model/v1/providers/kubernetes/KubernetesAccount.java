@@ -28,12 +28,12 @@ import com.netflix.spinnaker.halyard.config.model.v1.node.ValidForSpinnakerVersi
 import com.netflix.spinnaker.halyard.config.model.v1.providers.containers.ContainerAccount;
 import com.netflix.spinnaker.halyard.config.model.v1.providers.dockerRegistry.DockerRegistryProvider;
 import com.netflix.spinnaker.halyard.config.problem.v1.ConfigProblemSetBuilder;
+import com.netflix.spinnaker.halyard.config.validate.v1.util.ValidatingFileReader;
 import com.netflix.spinnaker.halyard.core.secrets.v1.SecretSessionManager;
 import com.netflix.spinnaker.kork.secrets.EncryptedSecret;
 import io.fabric8.kubernetes.api.model.Config;
 import io.fabric8.kubernetes.api.model.NamedContext;
 import io.fabric8.kubernetes.client.internal.KubeConfigUtils;
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -106,6 +106,7 @@ public class KubernetesAccount extends ContainerAccount implements Cloneable {
   Boolean debug;
 
   @Autowired private SecretSessionManager secretSessionManager;
+  @Autowired private ValidatingFileReader fileReader;
 
   public boolean usesServiceAccount() {
     return serviceAccount != null && serviceAccount;
@@ -131,8 +132,8 @@ public class KubernetesAccount extends ContainerAccount implements Cloneable {
             KubeConfigUtils.parseConfigFromString(
                 secretSessionManager.decrypt(getKubeconfigFile()));
       } else {
-        File kubeconfigFileOpen = new File(getKubeconfigFile());
-        kubeconfig = KubeConfigUtils.parseConfig(kubeconfigFileOpen);
+        String contents = fileReader.contents(psBuilder, getKubeconfigFile());
+        kubeconfig = KubeConfigUtils.parseConfigFromString(contents);
       }
     } catch (IOException e) {
       psBuilder.addProblem(ERROR, e.getMessage());

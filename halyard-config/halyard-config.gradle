@@ -28,6 +28,7 @@ dependencies {
   implementation 'io.fabric8:kubernetes-client'
   implementation 'com.squareup.retrofit:retrofit'
   implementation 'com.jcraft:jsch'
+  implementation "org.springframework.cloud:spring-cloud-config-server"
 
 //  TODO: add clouddriverDCOS once that's merged
   implementation project(':halyard-core')

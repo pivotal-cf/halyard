@@ -22,6 +22,7 @@ import java.util.Map;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
+import org.springframework.cloud.config.server.EnableConfigServer;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
@@ -31,8 +32,10 @@ import org.springframework.context.annotation.Configuration;
       "com.netflix.spinnaker.halyard",
     })
 @EnableAutoConfiguration
+@EnableConfigServer
 public class Main extends SpringBootServletInitializer {
   private static final Map<String, Object> DEFAULT_PROPS = buildDefaults();
+  private static final Map<String, String> BOOTSTRAP_SYSTEM_PROPS = buildBootstrapProperties();
 
   private static Map<String, Object> buildDefaults() {
     Map<String, String> defaults = new HashMap<>();
@@ -40,13 +43,36 @@ public class Main extends SpringBootServletInitializer {
     defaults.put("netflix.account", "${netflix.environment}");
     defaults.put("netflix.stack", "test");
     defaults.put("spring.config.node", "${user.home}/.spinnaker/");
-    defaults.put("spring.application.name", "halyard");
     defaults.put("spring.config.name", "${spring.application.name}");
     defaults.put("spring.profiles.active", "${netflix.environment},local");
+    // add the Spring Cloud Config "composite" profile to default to a configuration
+    // source that won't prevent app startup if custom configuration is not provided
+    defaults.put("spring.profiles.include", "composite");
     return Collections.unmodifiableMap(defaults);
   }
 
+  private static Map<String, String> buildBootstrapProperties() {
+    Map<String, String> properties = new HashMap<>();
+    properties.put("spring.application.name", "halyard");
+    // default locations must be included pending the resolution
+    // of https://github.com/spring-cloud/spring-cloud-commons/issues/466
+    properties.put(
+        "spring.cloud.bootstrap.location",
+        "classpath:/,classpath:/config/,file:./,file:./config/,${user.home}/.spinnaker/");
+    properties.put(
+        "spring.cloud.bootstrap.name", "spinnakerconfig,${spring.application.name}config");
+    properties.put("spring.cloud.config.server.bootstrap", "true");
+    return properties;
+  }
+
   public static void main(String... args) {
+    BOOTSTRAP_SYSTEM_PROPS.forEach(
+        (key, value) -> {
+          if (System.getProperty(key) == null) {
+            System.setProperty(key, value);
+          }
+        });
+
     new SpringApplicationBuilder().properties(DEFAULT_PROPS).sources(Main.class).run(args);
   }
 

@@ -24,6 +24,7 @@ import com.netflix.spinnaker.halyard.config.model.v1.canary.AbstractCanaryAccoun
 import com.netflix.spinnaker.halyard.config.model.v1.canary.google.GoogleCanaryAccount;
 import com.netflix.spinnaker.halyard.config.problem.v1.ConfigProblemSetBuilder;
 import com.netflix.spinnaker.halyard.config.validate.v1.canary.CanaryAccountValidator;
+import com.netflix.spinnaker.halyard.config.validate.v1.util.ValidatingFileReader;
 import com.netflix.spinnaker.halyard.core.problem.v1.Problem.Severity;
 import com.netflix.spinnaker.halyard.core.secrets.v1.SecretSessionManager;
 import com.netflix.spinnaker.halyard.core.tasks.v1.DaemonTaskHandler;
@@ -34,8 +35,6 @@ import org.springframework.scheduling.TaskScheduler;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class GoogleCanaryAccountValidator extends CanaryAccountValidator {
-
-  private SecretSessionManager secretSessionManager;
 
   private String halyardVersion;
 
@@ -50,6 +49,12 @@ public class GoogleCanaryAccountValidator extends CanaryAccountValidator {
   private long jitterMultiplier = 1000;
   private long maxRetries = 10;
 
+  public GoogleCanaryAccountValidator(
+      SecretSessionManager secretSessionManager, ValidatingFileReader validatingFileReader) {
+    this.secretSessionManager = secretSessionManager;
+    this.validatingFileReader = validatingFileReader;
+  }
+
   @Override
   public void validate(ConfigProblemSetBuilder p, AbstractCanaryAccount n) {
     super.validate(p, n);
@@ -63,7 +68,8 @@ public class GoogleCanaryAccountValidator extends CanaryAccountValidator {
             + GoogleCanaryAccountValidator.class.getSimpleName());
 
     GoogleNamedAccountCredentials credentials =
-        canaryAccount.getNamedAccountCredentials(halyardVersion, secretSessionManager, p);
+        canaryAccount.getNamedAccountCredentials(
+            halyardVersion, secretSessionManager, validatingFileReader, p);
 
     if (credentials == null) {
       return;

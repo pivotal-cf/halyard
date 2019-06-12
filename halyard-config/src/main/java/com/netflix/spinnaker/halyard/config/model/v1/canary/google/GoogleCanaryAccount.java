@@ -50,13 +50,16 @@ public class GoogleCanaryAccount extends AbstractCanaryAccount implements Clonea
 
   @JsonIgnore
   public GoogleNamedAccountCredentials getNamedAccountCredentials(
-      String version, SecretSessionManager secretSessionManager, ConfigProblemSetBuilder p) {
+      String version,
+      SecretSessionManager secretSessionManager,
+      ValidatingFileReader validatingFileReader,
+      ConfigProblemSetBuilder p) {
     String jsonKey = null;
     if (!StringUtils.isEmpty(getJsonPath())) {
       if (EncryptedSecret.isEncryptedSecret(getJsonPath())) {
         jsonKey = secretSessionManager.decrypt(getJsonPath());
       } else {
-        jsonKey = ValidatingFileReader.contents(p, getJsonPath());
+        jsonKey = validatingFileReader.contents(p, getJsonPath());
       }
 
       if (jsonKey == null) {

@@ -20,6 +20,7 @@ import com.netflix.spinnaker.clouddriver.cloudfoundry.security.CloudFoundryCrede
 import com.netflix.spinnaker.halyard.config.model.v1.node.Validator;
 import com.netflix.spinnaker.halyard.config.model.v1.providers.cloudfoundry.CloudFoundryAccount;
 import com.netflix.spinnaker.halyard.config.problem.v1.ConfigProblemSetBuilder;
+import com.netflix.spinnaker.halyard.config.validate.v1.util.FieldUtils;
 import com.netflix.spinnaker.halyard.core.problem.v1.Problem;
 import com.netflix.spinnaker.halyard.core.tasks.v1.DaemonTaskHandler;
 import lombok.Data;
@@ -57,26 +58,32 @@ public class CloudFoundryAccountValidator extends Validator<CloudFoundryAccount>
 
     if (StringUtils.isEmpty(apiHost)) {
       problemSetBuilder.addProblem(
-          Problem.Severity.ERROR, "You must provide a CF api endpoint host");
+          Problem.Severity.ERROR, "You must provide a Cloud Foundry API endpoint host");
     }
 
     if (StringUtils.isEmpty(appsManagerUri)) {
       problemSetBuilder.addProblem(
           Problem.Severity.WARNING,
-          "To be able to link server groups to CF Appsmanager a URI is required: " + accountName);
+          "To be able to link server groups to CF Apps Manager a URI is required");
     }
 
     if (StringUtils.isEmpty(metricsUri)) {
       problemSetBuilder.addProblem(
           Problem.Severity.WARNING,
-          "To be able to link server groups to CF Metrics a URI is required: " + accountName);
+          "To be able to link server groups to CF Metrics a URI is required");
     }
 
     if (skipSslValidation) {
       problemSetBuilder.addProblem(
           Problem.Severity.WARNING,
-          "SKIPPING SSL server certificate validation of the CloudFoundry API endpoint for account: "
-              + accountName);
+          "SKIPPING SSL server certificate validation of the Cloud Foundry API endpoint");
+    }
+
+    if (FieldUtils.anyContainPlaceholder(apiHost, user, password)) {
+      problemSetBuilder.addProblem(
+          Problem.Severity.WARNING,
+          "Skipping connection validation because one or more credential contains a placeholder value");
+      return;
     }
 
     CloudFoundryCredentials cloudFoundryCredentials =

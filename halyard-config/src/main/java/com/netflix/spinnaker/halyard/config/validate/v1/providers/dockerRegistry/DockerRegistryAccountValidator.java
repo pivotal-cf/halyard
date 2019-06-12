@@ -23,22 +23,20 @@ import com.netflix.spinnaker.halyard.config.model.v1.node.Validator;
 import com.netflix.spinnaker.halyard.config.model.v1.providers.dockerRegistry.DockerRegistryAccount;
 import com.netflix.spinnaker.halyard.config.problem.v1.ConfigProblemBuilder;
 import com.netflix.spinnaker.halyard.config.problem.v1.ConfigProblemSetBuilder;
+import com.netflix.spinnaker.halyard.config.validate.v1.util.FieldUtils;
 import com.netflix.spinnaker.halyard.core.problem.v1.Problem.Severity;
-import com.netflix.spinnaker.halyard.core.secrets.v1.SecretSessionManager;
+import java.nio.charset.Charset;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
 public class DockerRegistryAccountValidator extends Validator<DockerRegistryAccount> {
-  @Autowired private SecretSessionManager secretSessionManager;
-
   @Override
   public void validate(ConfigProblemSetBuilder p, DockerRegistryAccount n) {
-    String resolvedPassword = null;
+    String resolvedPassword = "";
     String password = n.getPassword();
     String passwordCommand = n.getPasswordCommand();
     String passwordFile = n.getPasswordFile();
@@ -76,23 +74,22 @@ public class DockerRegistryAccountValidator extends Validator<DockerRegistryAcco
         log.debug("Full command is" + pb.command());
 
         if (errCode != 0) {
-          String err = IOUtils.toString(process.getErrorStream());
+          String err = IOUtils.toString(process.getErrorStream(), Charset.defaultCharset());
           log.error("Password command returned a non 0 return code, stderr/stdout was:" + err);
           p.addProblem(
               Severity.WARNING,
-              String.format(
-                  "Password command returned non 0 return code, stderr/stdout was:" + err));
+              "Password command returned non 0 return code, stderr/stdout was:" + err);
         }
 
-        resolvedPassword = IOUtils.toString(process.getInputStream()).trim();
+        resolvedPassword =
+            IOUtils.toString(process.getInputStream(), Charset.defaultCharset()).trim();
 
         if (resolvedPassword.length() != 0) {
           log.debug("resolvedPassword is" + resolvedPassword);
         } else {
           p.addProblem(
               Severity.WARNING,
-              String.format(
-                  "Resolved Password was empty, missing dependencies for running password command?"));
+              "Resolved Password was empty, missing dependencies for running password command?");
         }
 
       } catch (Exception e) {
@@ -100,8 +97,6 @@ public class DockerRegistryAccountValidator extends Validator<DockerRegistryAcco
             Severity.WARNING,
             String.format("Exception encountered when running password command: %s", e));
       }
-    } else {
-      resolvedPassword = "";
     }
 
     if (!resolvedPassword.isEmpty()) {
@@ -141,6 +136,14 @@ public class DockerRegistryAccountValidator extends Validator<DockerRegistryAcco
       return;
     }
 
+    if (FieldUtils.anyContainPlaceholder(
+        n.getAddress(), n.getUsername(), n.getPassword(), n.getPasswordCommand())) {
+      p.addProblem(
+          Severity.WARNING,
+          "Skipping connection validation because one or more credential contains a placeholder value");
+      return;
+    }
+
     ConfigProblemBuilder authFailureProblem = null;
     if (n.getRepositories() == null || n.getRepositories().size() == 0) {
       try {
@@ -169,8 +172,7 @@ public class DockerRegistryAccountValidator extends Validator<DockerRegistryAcco
       }
     } else {
       // effectively final
-      int tagCount[] = new int[1];
-      tagCount[0] = 0;
+      int[] tagCount = new int[1];
       n.getRepositories()
           .forEach(
               r -> {

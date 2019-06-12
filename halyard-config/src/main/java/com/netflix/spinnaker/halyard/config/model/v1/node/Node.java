@@ -180,7 +180,11 @@ public abstract class Node implements Validatable {
     while (clazz != null) {
       res.addAll(
           Arrays.stream(clazz.getDeclaredFields())
-              .filter(f -> f.getDeclaredAnnotation(LocalFile.class) != null && !isSecretFile(f))
+              .filter(
+                  f ->
+                      f.getDeclaredAnnotation(LocalFile.class) != null
+                          && !isSecretFile(f)
+                          && !isConfigServerResource(f))
               .collect(Collectors.toList()));
       clazz = clazz.getSuperclass();
     }
@@ -188,17 +192,27 @@ public abstract class Node implements Validatable {
     return res;
   }
 
-  public boolean isSecretFile(Field field) {
+  private boolean isSecretFile(Field field) {
     if (field.getDeclaredAnnotation(SecretFile.class) != null) {
       try {
         field.setAccessible(true);
         String val = (String) field.get(this);
-        return val != null && EncryptedSecret.isEncryptedSecret(val);
+        return EncryptedSecret.isEncryptedSecret(val);
       } catch (IllegalAccessException e) {
         return false;
       }
     }
     return false;
+  }
+
+  private boolean isConfigServerResource(Field field) {
+    try {
+      field.setAccessible(true);
+      String val = (String) field.get(this);
+      return val != null && val.startsWith("configserver:");
+    } catch (IllegalAccessException e) {
+      return false;
+    }
   }
 
   public void stageLocalFiles(Path outputPath) {
