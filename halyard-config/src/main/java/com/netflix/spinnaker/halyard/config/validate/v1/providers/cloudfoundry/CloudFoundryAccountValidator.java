@@ -53,6 +53,7 @@ public class CloudFoundryAccountValidator extends Validator<CloudFoundryAccount>
     String password = cloudFoundryAccount.getPassword();
     String user = cloudFoundryAccount.getUser();
     boolean skipSslValidation = cloudFoundryAccount.isSkipSslValidation();
+    Integer resultsPerPage = cloudFoundryAccount.getResultsPerPage();
 
     if (StringUtils.isEmpty(user) || StringUtils.isEmpty(password)) {
       problemSetBuilder.addProblem(
@@ -105,7 +106,8 @@ public class CloudFoundryAccountValidator extends Validator<CloudFoundryAccount>
             user,
             password,
             environment,
-            skipSslValidation);
+            skipSslValidation,
+            resultsPerPage);
 
     try {
       int count = cloudFoundryCredentials.getCredentials().getSpaces().all().size();

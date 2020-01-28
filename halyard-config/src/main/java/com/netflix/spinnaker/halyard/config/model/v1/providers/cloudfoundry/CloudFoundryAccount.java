@@ -37,5 +37,8 @@ public class CloudFoundryAccount extends Account {
 
   @Secret String password;
   String user;
+
   boolean skipSslValidation = false;
+
+  Integer resultsPerPage;
 }

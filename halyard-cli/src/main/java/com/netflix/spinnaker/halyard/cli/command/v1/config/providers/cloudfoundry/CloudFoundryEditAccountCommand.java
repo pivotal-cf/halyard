@@ -58,6 +58,12 @@ public class CloudFoundryEditAccountCommand
       description = CloudFoundryCommandProperties.SKIP_SSL_VALIDATION_DESCRIPTION)
   private Boolean skipSslValidation = false;
 
+  @Parameter(
+      names = "--results-per-page",
+      arity = 1,
+      description = CloudFoundryCommandProperties.RESULTS_PER_PAGE_DESCRIPTION)
+  private Integer resultsPerPage = 500;
+
   @Override
   protected Account editAccount(CloudFoundryAccount account) {
     account.setApiHost(isSet(apiHost) ? apiHost : account.getApiHost());
@@ -67,6 +73,7 @@ public class CloudFoundryEditAccountCommand
     account.setUser(isSet(user) ? user : account.getUser());
     account.setSkipSslValidation(
         isSet(skipSslValidation) ? skipSslValidation : account.isSkipSslValidation());
+    account.setResultsPerPage(isSet(resultsPerPage) ? resultsPerPage : account.getResultsPerPage());
 
     return account;
   }

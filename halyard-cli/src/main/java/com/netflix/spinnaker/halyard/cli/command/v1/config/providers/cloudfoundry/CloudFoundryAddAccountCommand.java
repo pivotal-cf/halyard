@@ -59,6 +59,12 @@ public class CloudFoundryAddAccountCommand extends AbstractAddAccountCommand {
       description = CloudFoundryCommandProperties.SKIP_SSL_VALIDATION_DESCRIPTION)
   private Boolean skipSslValidation = false;
 
+  @Parameter(
+      names = "--results-per-page",
+      arity = 1,
+      description = CloudFoundryCommandProperties.RESULTS_PER_PAGE_DESCRIPTION)
+  private Integer resultsPerPage = 500;
+
   @Override
   protected Account buildAccount(String accountName) {
     CloudFoundryAccount cloudFoundryAccount =
@@ -69,7 +75,8 @@ public class CloudFoundryAddAccountCommand extends AbstractAddAccountCommand {
         .setMetricsUrl(metricsUrl)
         .setPassword(password)
         .setUser(user)
-        .setSkipSslValidation(skipSslValidation);
+        .setSkipSslValidation(skipSslValidation)
+        .setResultsPerPage(resultsPerPage);
   }
 
   @Override
